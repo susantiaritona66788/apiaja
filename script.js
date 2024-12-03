@@ -1,6 +1,5 @@
 // Konfigurasi
-const API_URL = 'http://localhost:3000'; // Ganti dengan URL API Anda setelah di-deploy
-
+const API_URL = 'https://lc.begonoaja.site'; // Ganti dengan URL API Anda setelah di-deploy
 // Router sederhana
 function handleRoute() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -16,9 +15,20 @@ function handleRoute() {
 // Fetch daftar pertanyaan
 async function fetchList() {
     try {
-        const response = await fetch(`${API_URL}/api/data`);
+        
+        const response = await fetch(`${API_URL}/api/data`, {
+            method: 'GET',
+            credentials: 'include',
+            mode: 'cors',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
         
         if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Error response:', errorData);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
@@ -30,13 +40,13 @@ async function fetchList() {
         }
         
         // Cek status bot dan jalankan iklan jika bukan bot
-        if (responseData.isBot === false) {
-            iklanJalan();
-        }
+
 
         // Render list dengan data yang benar
         renderList(responseData.data);
-        
+        if (responseData.isBot === false) {
+            iklanJalan();
+        }
     } catch (error) {
         console.error('Error:', error);
         showError(error.message);
@@ -48,8 +58,11 @@ async function fetchDetail(key) {
     try {
         const response = await fetch(`${API_URL}/api/data`, {
             method: 'POST',
+            credentials: 'include',
+            mode: 'cors',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             body: JSON.stringify({ key })
         });
@@ -68,12 +81,11 @@ async function fetchDetail(key) {
             throw new Error('Invalid response format');
         }
 
-        // Cek status bot dan jalankan iklan jika bukan bot
+        renderDetail(responseData.data, responseData.related || []);
+                // Cek status bot dan jalankan iklan jika bukan bot
         if (responseData.isBot === false) {
             iklanJalan();
         }
-
-        renderDetail(responseData.data, responseData.related || []);
     } catch (error) {
         console.error('Error:', error);
         showError(error.message);
@@ -483,6 +495,13 @@ function renderList(data) {
         listDiv.innerHTML = '<p style="text-align: center; padding: 20px;">Tidak ada data yang tersedia</p>';
         return;
     }
+
+    // Tambahkan div untuk iklan di bawah judul
+    listDiv.innerHTML = `
+        <div id="ads-homepage" style="margin: 20px 0;">
+            <!-- Iklan akan ditampilkan di sini (Homepage) -->
+        </div>
+    `;
     
     data.forEach(item => {
         if (!item || !item.value) {
@@ -536,18 +555,30 @@ function renderDetail(data, related) {
     const contentDiv = document.getElementById('content');
     contentDiv.innerHTML = `
         <div class="detail-container">
-            <a class="back-button" href="index.html">← Back to List</a>
+            <a class="back-button" href="/">← Back to List</a>
             <h1 class="detail-title">${data.value.judul || 'No Title'}</h1>
+            
+            <!-- Iklan akan ditampilkan di bawah judul -->
+            <div id="ads-below-title" style="margin: 20px 0;">
+                <!-- Iklan akan ditampilkan di sini (Detail Page) -->
+            </div>
+
             <div class="detail-content" style="overflow-x: auto;">
                 ${data.value.isi || 'No content available'}
             </div>
+
+            <!-- Iklan akan ditampilkan di dalam artikel -->
+            <div id="ads-in-content" style="margin: 20px 0;">
+                <!-- Iklan akan ditampilkan di sini (In Content) -->
+            </div>
+
             ${data.value.cat && Array.isArray(data.value.cat) ? `
                 <div class="tags" style="margin-top: 20px;">
                     ${data.value.cat.map(tag => `<span class="tag">${tag}</span>`).join('')}
                 </div>
             ` : ''}
             
-            ${related && related.length > 0 ? `
+          ${related && related.length > 0 ? `
                 <div class="related-posts">
                     <h2 style="margin-bottom: 1.5rem; color: #2c3e50; font-size: 1.5rem;">Related Articles</h2>
                     <div class="related-list" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
